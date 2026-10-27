@@ -13,6 +13,28 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Auto Unzip Project Files if zipped
+        run: |
+          echo "Checking repository structure..."
+          ls -la
+          # If a zip file was uploaded directly, find and unzip it to root
+          ZIP_FILE=$(find . -maxdepth 1 -name "*.zip" | head -n 1)
+          if [ -n "$ZIP_FILE" ]; then
+            echo "Found zip file: $ZIP_FILE. Unzipping..."
+            unzip -o "$ZIP_FILE" -d .
+            rm -f "$ZIP_FILE"
+          fi
+          # Also handle case where files are nested inside a subfolder
+          if [ ! -f "settings.gradle.kts" ] && [ ! -f "settings.gradle" ]; then
+            SUB_DIR=$(find . -mindepth 1 -maxdepth 1 -type d | grep -v "\.git" | head -n 1)
+            if [ -n "$SUB_DIR" ] && [ -f "$SUB_DIR/settings.gradle.kts" -o -f "$SUB_DIR/settings.gradle" ]; then
+              echo "Moving files from nested directory $SUB_DIR to root..."
+              mv "$SUB_DIR"/* .
+            fi
+          fi
+          echo "Final root structure:"
+          ls -la
+
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
